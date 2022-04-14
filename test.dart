@@ -3,25 +3,22 @@
 import 'dart:convert';
 import 'dart:io';
 
-
-
 class navBar {
   List<String> my_menu = ['Fichier', 'Commandes', 'Options', 'Infos'];
+
+  List<String> sub_menu_fichier = ['F1', 'F2', 'F3'];
+
+  List<String> selected_menu = [''];
+  List<String> previous_selected_menu = [''];
+  int previous_pos = 0;
+
   int pos = 0;
+  int menu_level = 0;
   int box_size = 0;
 
-  void user_select(String user_input) {
-    List<int> element_encoded = user_input.codeUnits;
-    if (element_encoded.length == 3) {  
-      if (element_encoded[0] == 27 && element_encoded[1] == 91 && element_encoded[2] == 67) {
-        pos = (pos + 1) % my_menu.length;
-      }
-      if (element_encoded[0] == 27 && element_encoded[1] == 91 && element_encoded[2] == 68) {
-        pos = (pos - 1) % my_menu.length;
-      }
-    }
+  void user_select(int user_input) {
+    pos = (pos + user_input) % selected_menu.length;
   }
-
 
   void display() {
     print(Process.runSync("clear", [], runInShell: true).stdout);
@@ -29,7 +26,8 @@ class navBar {
     int cpt_cursor = 0;
     String asterix;
     String space_between = "";
-    for (String onglet in my_menu) {
+    print("'q' to quit");
+    for (String onglet in selected_menu) {
       if (cpt_cursor == pos) {
         asterix = "\x1B[30;107m*";
       } else {
@@ -39,85 +37,106 @@ class navBar {
       stdout.write("$asterix$onglet\x1B[0m$space_between");
       cpt_cursor++;
     }
+    print("\x1B[5;0H");
   }
 
-  void debug(String user_input) {
+  void debug() {
     print('pos: $pos');
   }
 
-  void set_box_size() {
-    box_size = my_menu[0].length;
-    for (String onglet in my_menu) {
+  int quit_menu() {
+    if (menu_level==0) {
+      return -1;
+    } else {
+      selected_menu = previous_selected_menu;
+      pos = previous_pos;
+      menu_level--;
+      return menu_level;
+    }
+  }
+
+  void const_refresh() {
+    menu_level++;
+    previous_pos = pos;
+    pos = 0;
+  }
+
+  void reset_box(bool init) {
+    if (init) {
+      selected_menu = my_menu;
+      previous_selected_menu = my_menu;
+    } else {
+      switch (selected_menu[pos]) {
+        case 'Fichier':
+          selected_menu = sub_menu_fichier;
+          const_refresh();
+          break;
+        case 'Commandes':
+          selected_menu = sub_menu_fichier;
+          const_refresh();
+          break;
+        case 'Options':
+          selected_menu = sub_menu_fichier;
+          const_refresh();
+          break;
+        case 'Infos':
+          selected_menu = sub_menu_fichier;
+          const_refresh();
+          break;
+      }
+    }
+    reset_size();
+  }
+
+  void reset_size() {
+    box_size = selected_menu[0].length;
+    for (String onglet in selected_menu) {
       if (box_size < onglet.length) {
         box_size = onglet.length;
       }
     }
-    box_size += 4;
+    box_size += 2;
   }
-
 }
 
 navBar my_bar = navBar();
 
 void main() {
-  //for (int i = 0; i < 5; i++) {
-    //print('hello ${i + 1}');
-  //}
-  //String? name = stdin.readLineSync(); 
-  //print("Hello, $name");
-
-
-  //print("Input:");
-
-  //my_bar.set_box_size();
-  //my_bar.display();
-  //stdin.echoMode = false;
-  //stdin.lineMode = false;
-
-
-  //stdin.transform(utf8.decoder).forEach((element) {
-
-  /*
-  stdin.transform(utf8.decoder).forEach((element) {
-    List<int> element_encoded = element.codeUnits;
-    print("Yep: $element = $element_encoded");
-    if (element == "q") {
-      print("EQUAL");
-      stdin.cancel();
-    }
-  });*/
+  my_bar.reset_box(true);
+  my_bar.display();
 
   int inputy;
   while (true) {
     inputy = getch();
-    //print(inputy);
+    print(inputy);
     if (inputy == 27) {
       inputy = getch();
       if (inputy == 91) {
         inputy = getch();
-        if (inputy == 65) print("top arrow");
-        if (inputy == 66) print("bottom arrow");
-        if (inputy == 67) print("right arrow");
-        if (inputy == 68) print("left arrow");
+        // if (inputy == 65) print("top arrow");
+        // if (inputy == 66) print("bottom arrow");
+        if (inputy == 67) {
+          my_bar.user_select(1);
+          // print("right arrow");
+        }
+        if (inputy == 68) {
+          my_bar.user_select(-1);
+          // print("left arrow");
+        }
       }
+    } else if (inputy == 10) { // == 'enter'
+      my_bar.reset_box(false);
     } else if (inputy == 113) { // == 'q'
-      break;
+      if (my_bar.quit_menu() == -1) {
+        print(Process.runSync("clear", [], runInShell: true).stdout);
+        break;
+      }
+      my_bar.reset_size();
     }
-  }
-
-  
-
-   
-  /*
-  stdin.transform(utf8.decoder).forEach((element) {
-    //List<int> element_encoded = element.codeUnits;
-    //print("select: $element = $element_encoded");
-    my_bar.user_select(element);
-    //my_bar.debug(element);
     my_bar.display();
-  });*/
+    // my_bar.debug();
+  }
 }
-
 
 int getch() {
   stdin.echoMode = false;
