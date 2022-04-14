@@ -4,20 +4,27 @@ import 'dart:convert';
 import 'dart:io';
 
 class navBar {
+  // LAYER 0
   List<String> my_menu = ['Fichier', 'Commandes', 'Options', 'Infos'];
 
+  // LAYER 1
   List<String> sub_menu_fichier = ['F1', 'F2', 'F3'];
+  List<String> sub_menu_commandes = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'];
+  List<String> sub_menu_options = ['O1'];
+  List<String> sub_menu_infos = ['I1', 'I2'];
 
-  List<String> selected_menu = [''];
-  List<String> previous_selected_menu = [''];
-  int previous_pos = 0;
+  // LAYER 2
+  List<String> sub_sub_menu_fichier_F1 = ['sub_F1_1', 'sub_F1_2', 'sub_F1_3', 'sub_F1_4'];
 
-  int pos = 0;
+
+  List<List<String>> hierarchie_menu = [ [''] ];
+  List<int> pos = [0];
+
   int menu_level = 0;
   int box_size = 0;
 
   void user_select(int user_input) {
-    pos = (pos + user_input) % selected_menu.length;
+    pos[pos.length-1] = (pos[pos.length-1] + user_input) % hierarchie_menu[hierarchie_menu.length-1].length;
   }
 
   void display() {
@@ -27,8 +34,8 @@ class navBar {
     String asterix;
     String space_between = "";
     print("'q' to quit");
-    for (String onglet in selected_menu) {
-      if (cpt_cursor == pos) {
+    for (String onglet in hierarchie_menu[hierarchie_menu.length-1]) {
+      if (cpt_cursor == pos[pos.length-1]) {
         asterix = "\x1B[30;107m*";
       } else {
         asterix = " ";
@@ -41,15 +48,16 @@ class navBar {
   }
 
   void debug() {
-    print('pos: $pos');
+    int d_pos = pos[pos.length-1];
+    print('pos: $d_pos');
   }
 
   int quit_menu() {
     if (menu_level==0) {
       return -1;
     } else {
-      selected_menu = previous_selected_menu;
-      pos = previous_pos;
+      hierarchie_menu.removeLast();
+      pos.removeLast();
       menu_level--;
       return menu_level;
     }
@@ -57,40 +65,49 @@ class navBar {
 
   void const_refresh() {
     menu_level++;
-    previous_pos = pos;
-    pos = 0;
+    pos.add(0);
   }
 
   void reset_box(bool init) {
     if (init) {
-      selected_menu = my_menu;
-      previous_selected_menu = my_menu;
+      hierarchie_menu[0] = my_menu;
+      pos[0] = 0;
     } else {
-      switch (selected_menu[pos]) {
-        case 'Fichier':
-          selected_menu = sub_menu_fichier;
-          const_refresh();
-          break;
-        case 'Commandes':
-          selected_menu = sub_menu_fichier;
-          const_refresh();
-          break;
-        case 'Options':
-          selected_menu = sub_menu_fichier;
-          const_refresh();
-          break;
-        case 'Infos':
-          selected_menu = sub_menu_fichier;
-          const_refresh();
-          break;
+      // LAYER 1
+      if (menu_level == 0) {
+        switch (hierarchie_menu[hierarchie_menu.length-1][pos[pos.length-1]]) {
+          case 'Fichier':
+            hierarchie_menu.add(sub_menu_fichier);
+            const_refresh();
+            break;
+          case 'Commandes':
+            hierarchie_menu.add(sub_menu_commandes);
+            const_refresh();
+            break;
+          case 'Options':
+            hierarchie_menu.add(sub_menu_options);
+            const_refresh();
+            break;
+          case 'Infos':
+            hierarchie_menu.add(sub_menu_infos);
+            const_refresh();
+            break;
+        }
+      } else if (menu_level == 1) {
+        switch (hierarchie_menu[hierarchie_menu.length-1][pos[pos.length-1]]) {
+          case 'F1':
+            hierarchie_menu.add(sub_sub_menu_fichier_F1);
+            const_refresh();
+            break;
+        }
       }
     }
     reset_size();
   }
 
   void reset_size() {
-    box_size = selected_menu[0].length;
-    for (String onglet in selected_menu) {
+    box_size = hierarchie_menu[hierarchie_menu.length-1][0].length;
+    for (String onglet in hierarchie_menu[hierarchie_menu.length-1]) {
       if (box_size < onglet.length) {
         box_size = onglet.length;
       }
@@ -104,6 +121,7 @@ navBar my_bar = navBar();
 void main() {
   my_bar.reset_box(true);
   my_bar.display();
+  my_bar.debug();
 
   int inputy;
   while (true) {
@@ -134,7 +152,7 @@ void main() {
       my_bar.reset_size();
     }
     my_bar.display();
-    // my_bar.debug();
+    my_bar.debug();
   }
 }
 
